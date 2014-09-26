@@ -325,14 +325,16 @@
         _ref = valueString.split('').reverse();
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           valueDigit = _ref[_i];
-          if (valueDigit.match(/0-9/)) {
-            digit = this.renderDigit();
-            digit.querySelector('.odometer-value').innerHTML = valueDigit;
-            this.digits.push(digit);
-            this.insertDigit(digit);
-          } else {
-            this.addSpacer(valueDigit);
-          }
+          this.addDigit(valueDigit, true);
+
+          // if (valueDigit.match(/0-9/)) {
+          //   // digit = this.renderDigit();
+          //   // digit.querySelector('.odometer-value').innerHTML = valueDigit;
+          //   // this.digits.push(digit);
+          //   // this.insertDigit(digit);
+          // } else {
+          //   this.addSpacer(valueDigit);
+          // }
         }
       } else {
         wholePart = !this.format.precision || !fractionalPart(value) || false;
@@ -405,6 +407,9 @@
       if (value === '.') {
         return this.addSpacer((_ref = this.format.radix) != null ? _ref : '.', null, 'odometer-radix-mark');
       }
+      if( value === ':'){
+        //return this.addSpacer(':', null, 'odometer-time-mark');
+      }
       if (repeating) {
         resetted = false;
         while (true) {
@@ -433,7 +438,11 @@
       if (!TRANSITION_SUPPORT || this.options.animation === 'count') {
         return this.animateCount(newValue);
       } else {
-        return this.animateSlide(newValue);
+        if(this.options.animation === 'time'){
+          return this.animateTime(newValue);
+        }else{
+          return this.animateSlide(newValue);
+        }
       }
     };
 
@@ -587,6 +596,122 @@
         return this.addSpacer(this.format.radix, this.digits[fractionalCount - 1], 'odometer-radix-mark');
       }
     };
+
+    Odometer.prototype.animateTime = function(newValue) {
+      var boosted, cur, diff, digitCount, digits, dist, end, fractionalCount, frame, frames, i, incr, j, mark, numEl, oldValue, start, _base, _i, _j, _k, _l, _len, _len1, _len2, _m, _ref, _results;
+      oldValue = this.value;
+
+      var timestamp = function(value){
+        var h = Math.floor(value / 100);
+        var m = value - h*100;
+        var date = new Date(null, null, null, h, m, 0, 0);
+
+        return date;
+      }; 
+
+      var newDate = timestamp(newValue);
+      var oldDate = timestamp(oldValue);
+
+      start = oldDate.getTime();
+      end = newDate.getTime();
+
+      if (!(diff = start - end)) {
+        return;
+      }
+      var factor = diff / (diff = Math.abs(diff));
+      incr = Math.round(diff / (this.MAX_VALUES + this.MAX_VALUES * 4 * DIGIT_SPEEDBOOST));
+      
+      this.bindTransitionEnd();
+
+      var max = Math.max(start, end);
+      var min = Math.min(start, end);
+
+      var steps = [];
+
+      cur = min + incr;
+      console.log(incr, cur, max, min);
+      while(cur < max){
+        steps.push(cur);
+        cur+=incr;
+      }
+      steps.push(max);
+
+      digits = [[],[],[],[]];
+      var h1 = -1, m1t;
+      var h2 = -1, m2t;
+      var m1 = -1, s1t;
+      var m2 = -1, s2t;
+      for(var i = 0; i < steps.length; i++){
+        // Minuty
+        cur = new Date();
+        cur.setTime(steps[i]);
+
+        h1t = Math.floor(cur.getHours() / 10);
+        h2t = cur.getHours() - h1t*10;
+        m1t = Math.floor(cur.getMinutes() / 10);
+        m2t = cur.getMinutes() - m1t*10;
+
+        console.log(h1t, h2t, m1t, m2t);
+
+        if(h1t != h1){
+          digits[0].push(h1t);
+          h1 = h1t;
+        }
+        if(h2t != h2){
+          digits[1].push(h2t);
+          h2 = h2t;
+        }
+        if(m1t != m1){
+          digits[2].push(m1t);
+          m1 = m1t;
+          digits[3].push(m2t);
+        }else{
+          if(m2t != m2){
+            digits[3].push(m2t);
+            m2 = m2t;
+          }  
+        }
+      }
+
+      fractionalCount = 2;
+
+      this.resetDigits();
+      _ref = digits.reverse();
+      for (i = _l = 0, _len1 = _ref.length; _l < _len1; i = ++_l) {
+        frames = _ref[i];
+        if (!this.digits[i]) {
+          this.addDigit(' ', i >= fractionalCount);
+        }
+        if ((_base = this.ribbons)[i] == null) {
+          _base[i] = this.digits[i].querySelector('.odometer-ribbon-inner');
+        }
+        this.ribbons[i].innerHTML = '';
+        if (diff < 0) {
+          frames = frames.reverse();
+        }
+        for (j = _m = 0, _len2 = frames.length; _m < _len2; j = ++_m) {
+          frame = frames[j];
+          numEl = document.createElement('div');
+          numEl.className = 'odometer-value';
+          numEl.innerHTML = frame;
+          this.ribbons[i].appendChild(numEl);
+          if (j === frames.length - 1) {
+            addClass(numEl, 'odometer-last-value');
+          }
+          if (j === 0) {
+            addClass(numEl, 'odometer-first-value');
+          }
+        }
+      }
+      mark = this.inside.querySelector('.odometer-radix-mark');
+      if (mark != null) {
+        mark.parent.removeChild(mark);
+      }
+
+      if (fractionalCount) {
+        return this.addSpacer(':', this.digits[fractionalCount - 1], 'odometer-radix-mark');
+      }
+    };    
 
     return Odometer;
 

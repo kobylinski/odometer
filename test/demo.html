@@ -7,16 +7,23 @@
 </style>
 <script>
 window.odometerOptions = {
-  format: '(ddd).dd'
+  format: 'dd:dd',
+  animation: 'time',
+  formatFunction: function(value){
+    var h = Math.floor(value / 100);
+    var m = value - h*100;
+
+    return (h < 10 ? '0'+h:''+h).toString()+(m < 10 ? '0' + m:''+m).toString();
+  }
 };
 </script>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script src="../odometer.js"></script>
-<div class="odometer">3252</div>
+<div class="odometer">2300</div>
 
 <script>
   setTimeout(function(){
-    $('.odometer').html(423234234);
+    $('.odometer').html(11);
   }, 1000);
 </script>
